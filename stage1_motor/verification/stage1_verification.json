@@ -1,0 +1,90 @@
+{
+ "params": {
+  "pp": 8,
+  "Rs": 0.04675,
+  "L": 6.15e-05,
+  "Kt": 0.043621874709832933,
+  "psi": 0.003635156225819411,
+  "Vmax": 12.470765814495918,
+  "Kp": 0.38641589639154456,
+  "Ki": 293.7389131106456,
+  "Kaw": 760.1626016260162,
+  "Imax": 20.9
+ },
+ "T1_locked_iq_step": {
+  "max_abs_diff_iq_A": 2.1316282072803006e-14,
+  "max_abs_diff_id_A": 0.0,
+  "max_abs_diff_Te_Nm": 9.43689570931383e-16,
+  "max_abs_diff_wm": 0.0,
+  "iq_final": 9.999999999999757,
+  "id_max_abs": 0.0,
+  "vmag_max": 3.8641589639154454,
+  "vmag_limit": 12.470765814495918,
+  "iq_ref_max": 10.0,
+  "xq_max_abs": 0.46749999999998965,
+  "rise_10_90_ms": 0.35000000000000003,
+  "overshoot_pct": -2.433608869978343e-12
+ },
+ "T2_rated_speed_iq": {
+  "max_abs_diff_iq_A": 5.325251350996041e-11,
+  "max_abs_diff_id_A": 8.513182751338869e-11,
+  "max_abs_diff_Te_Nm": 2.3229751455744463e-12,
+  "max_abs_diff_wm": 0.0,
+  "iq_final": 9.999999999999757,
+  "id_max_abs": 0.0,
+  "vmag_max": 11.73063703658865,
+  "vmag_limit": 12.470765814495918,
+  "iq_ref_max": 10.0,
+  "xq_max_abs": 0.4674999999999899,
+  "rise_10_90_ms": 0.35000000000000003,
+  "overshoot_pct": -2.433608869978343e-12
+ },
+ "T3_voltage_limit": {
+  "max_abs_diff_iq_A": 2.5042297906452404e-06,
+  "max_abs_diff_id_A": 1.8694611014780094e-06,
+  "max_abs_diff_Te_Nm": 1.0923919813166094e-07,
+  "max_abs_diff_wm": 0.0,
+  "iq_final": 9.999999999999906,
+  "id_max_abs": 70.85123846017505,
+  "vmag_max": 12.47076581449592,
+  "vmag_limit": 12.470765814495918,
+  "iq_ref_max": 10.0,
+  "xq_max_abs": 4.5349277046700065,
+  "saturated_from_to_ms": [
+   4.0,
+   13.719999999999999
+  ],
+  "iq_during_overspeed_min": -97.00380116941182,
+  "recovered_within_ms_after_12ms": 2.3799999999999986,
+  "iq_overshoot_after_recovery_pct": -9.414691248821327e-13
+ },
+ "T4_free_rotor": {
+  "max_abs_diff_iq_A": 3.360700695509422e-08,
+  "max_abs_diff_id_A": 3.0579432615714566e-08,
+  "max_abs_diff_Te_Nm": 1.4660006542044357e-09,
+  "max_abs_diff_wm": 7.671133062103763e-09,
+  "iq_final": -1.5763058176474056,
+  "id_max_abs": 0.0,
+  "vmag_max": 12.47076581449592,
+  "vmag_limit": 12.470765814495918,
+  "iq_ref_max": 10.0,
+  "xq_max_abs": 0.46750000000000314,
+  "wm_at_20ms": 109.73325283706292,
+  "wm_at_20ms_expected_Te_over_J": 110.65629098622505,
+  "wm_peak": 429.0995460212288,
+  "wm_voltage_limited_theory": 428.82496101267446,
+  "J_test": 7.49e-05
+ },
+ "T5_command_limit": {
+  "max_abs_diff_iq_A": 2.4868995751603507e-14,
+  "max_abs_diff_id_A": 0.0,
+  "max_abs_diff_Te_Nm": 1.1102230246251565e-15,
+  "max_abs_diff_wm": 0.0,
+  "iq_final": 20.899999863890578,
+  "id_max_abs": 0.0,
+  "vmag_max": 8.07609223458328,
+  "vmag_limit": 12.470765814495918,
+  "iq_ref_max": 20.9,
+  "xq_max_abs": 0.9770749936368862
+ }
+}

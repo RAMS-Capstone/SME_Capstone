@@ -1,0 +1,10 @@
+# Simulink / MATLAB binary files: never try to diff or merge them as text
+*.slx  binary
+*.mdl  -crlf
+*.mat  binary
+*.mlx  binary
+*.png  binary
+*.m    text eol=lf
+*.py   text eol=lf
+*.md   text eol=lf
+*.csv  text

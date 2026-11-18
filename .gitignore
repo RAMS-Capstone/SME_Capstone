@@ -1,0 +1,21 @@
+# MATLAB / Simulink caches and autosaves
+*.slxc
+slprj/
+*.asv
+*.autosave
+*.slx.r20*
+*.mexw64
+*.mexa64
+*.mexmaci64
+sccprj/
+codegen/
+
+# Python
+__pycache__/
+*.pyc
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+~$*

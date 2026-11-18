@@ -1,0 +1,9 @@
+T1_rise_ms     wiring-run     0.349697   python-ref     0.350000   OK
+T2_vmag_max    wiring-run    11.730637   python-ref    11.730637   OK
+T3_iq_min      wiring-run   -97.003801   python-ref   -97.003801   OK
+T3_vmag_max    wiring-run    12.470766   python-ref    12.470766   OK
+T4_wm_20ms     wiring-run   109.733253   python-ref   109.733253   OK
+T4_wm_peak     wiring-run   429.099546   python-ref   429.099546   OK
+T5_iq_final    wiring-run    20.900000   python-ref    20.900000   OK
+blocks: 24 46 12  edges: 30 63 23
+WIRING MATCHES REFERENCE

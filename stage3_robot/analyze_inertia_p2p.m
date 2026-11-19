@@ -7,8 +7,8 @@ function R = analyze_inertia_p2p(outMat)
 %     M22(t)            inertia of the arm about joint 2 (changes with q2, q3, q4, ...)
 %     M23, M24          coupling: how much joint 3/4 acceleration loads joint 2
 %     Jr = N^2*(Jm+J_WG) = 0.249 kg m^2   reflected rotor + wave-generator inertia (constant)
-%   With a 100:1 gear, Jr is added to M22. The larger Jr is, the smaller the RELATIVE change
-%   the motor sees - this is why the joint looks "decoupled" from the motor side.
+%   With a 100:1 gear, Jr is added to M22, which lowers the RELATIVE change the motor sees.
+%   Result 2026-11-20: Jr is only ~16-20% of M22 for joint 2, so it hides little (13% -> 11%).
 %
 %   outMat : results/p2p_ideal_out.mat (default)
 %   Output : results/p2p_inertia.csv, results/p2p_inertia.png
@@ -52,9 +52,9 @@ f = figure('Visible','off','Position',[50 50 1000 750]); tiledlayout(3,1);
 nexttile; plot(ts, qs(:,2), ts, qs(:,4)); ylabel('q (rad)'); legend('q_2','q_4'); grid on;
 title('Inertia seen by joint 2 during the slow point-to-point motion');
 nexttile; plot(ts, M22, 'LineWidth',1.5); hold on; plot(ts, M22 + Jr, 'LineWidth',1.5);
-yline(Jr, 'k:', sprintf('J_r = N^2(J_m+J_{WG}) = %.3f', Jr));
+yline(Jr, 'k:', sprintf('J_r = N^2(J_m+J_{WG}) = %.3f', Jr), 'LabelHorizontalAlignment','left');
 ylabel('kg m^2'); legend(sprintf('M_{22} (arm only), change %.0f%%', R.M22_change_pct), ...
-    sprintf('M_{22} + J_r (motor side), change %.0f%%', R.M22_plus_Jr_change_pct), 'Location','best'); grid on;
+    sprintf('M_{22} + J_r (motor side), change %.0f%%', R.M22_plus_Jr_change_pct), 'Location','east'); grid on;
 nexttile; plot(ts, M23, ts, M24); yline(0,'k:'); ylabel('kg m^2'); xlabel('time (s)');
 legend('M_{23} coupling', 'M_{24} coupling'); grid on;
 exportgraphics(f, fullfile(rd,'p2p_inertia.png'), 'Resolution',130); close(f);

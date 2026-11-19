@@ -6,7 +6,7 @@
 
 | 순서 | 할 일 | 상태 |
 | --- | --- | --- |
-| 1 | 관절 2 액추에이터 슬롯 (`build_stage3_slot.m`, `test_stage3_slot.m`) | 스크립트 완료, MATLAB 실행 대기 |
+| 1 | 관절 2 액추에이터 슬롯 (`build_stage3_slot.m`, `test_stage3_slot.m`) | **완료** (2026-11-19, 원본과 차이 0) |
 | 2 | Gen3 속도 한계 안의 느린 point-to-point 궤적 | 예정 |
 | 3 | 동작 중 M(q) 관성 변화 그림 (M22, M23, M24 대 반사 관성 0.25 kg·m²) | 예정 |
 | 4 | CTC에 반사 관성 옵션 추가 | 예정 |
@@ -24,7 +24,7 @@
 - `q_J`, `qd_J`는 지금 쓰지 않는다. 감속기 비틀림 스프링 τ = K(s·θm/N − q) + c(s·ωm/N − q̇)에 필요해서 미리 연결해 둔다.
 - 로그: `tau_joint` = CTC 명령(원본과 같다), `tau_applied` = 실제로 관절에 들어간 토크(새로 추가).
 
-### 실행 (민혁 PC)
+### 실행
 
 ```matlab
 cd stage3_robot
@@ -33,5 +33,16 @@ test_stage3_slot('baseline_input_decel.mat') % 원본과 슬롯 모델을 같은
 ```
 
 - `baseline_input_decel.mat`(q_cmd, qd_cmd, qdd_cmd, t_release_plan)는 민혁 PC에만 있다. MATLAB 경로에 두거나 전체 경로를 넘긴다.
-- 통과 기준: q, qd, 토크의 최대 차이 < 1e-9. 결과는 `results/stage3_slot_check.csv/.png`에 저장된다.
-- 통과하면 `Gen3_J2_slot.slx`와 결과 파일을 이 폴더에 올린다.
+- 원본 `Gen3_throw_baseline.slx`는 인자 → `../models/original/` → 같은 폴더 → MATLAB 경로 순서로 찾는다. 폴더 밖에서 실행할 때는 `build_stage3_slot('C:/.../Gen3_throw_baseline.slx')`처럼 경로를 넘긴다.
+- 통과 기준: q, qd, 토크의 최대 차이 < 1e-9.
+
+### 결과 (2026-11-19, 민혁 PC)
+
+| 항목 | 값 |
+| --- | --- |
+| 시간 격자 동일 | 예 |
+| q, qd 최대 차이 (7개 관절) | 0 |
+| CTC 토크 명령 최대 차이 | 0 |
+| 관절에 들어간 토크 대 명령 | 0 |
+
+슬롯을 넣어도 결과가 비트 단위로 같다(`results/stage3_slot_check.csv`, `.png`). 이제 `J2_Actuator` 안만 바꾸면 관절 2에 액추에이터가 들어간다.

@@ -1,4 +1,4 @@
-function build_stage3_slot
+function build_stage3_slot(srcfile)
 % BUILD_STAGE3_SLOT  Copies the Gen3 throw baseline and inserts a joint-2 "actuator slot".
 %
 %   Original  : CTC  --tau(7)-->  Subsystem (Gen3 Multibody plant)
@@ -10,10 +10,13 @@ function build_stage3_slot
 %   J2_Actuator is an IDEAL pass-through for now: tau_J = tau_cmd_J. Stage 2 replaces its
 %   contents with motor + FOC + gear; its ports (tau_cmd_J, q_J, qd_J -> tau_J) stay the same.
 %
-%   The original models/original/Gen3_throw_baseline.slx is never saved over.
-%   Output: stage3_robot/Gen3_J2_slot.slx
+%   srcfile (optional): full path of Gen3_throw_baseline.slx. If omitted, the script looks in
+%   ../models/original/, then next to this file, then on the MATLAB path.
+%   The original file is never saved over. Output: Gen3_J2_slot.slx next to this script.
 here    = fileparts(mfilename('fullpath'));
-srcfile = fullfile(here,'..','models','original','Gen3_throw_baseline.slx');
+if nargin < 1, srcfile = ''; end
+srcfile = find_baseline(here, srcfile);
+fprintf('Source model: %s\n', srcfile);
 dstfile = fullfile(here,'Gen3_J2_slot.slx');
 src = 'Gen3_throw_baseline'; m = 'Gen3_J2_slot';
 if bdIsLoaded(m), close_system(m,0); end
@@ -90,4 +93,17 @@ set_param(m,'Description',['Gen3 throw baseline + joint-2 actuator slot (stage 3
 save_system(m);
 close_system(m,0);
 fprintf('Saved %s (joint-%d slot, ideal pass-through)\n', dstfile, J);
+end
+
+function f = find_baseline(here, given)
+% Where is Gen3_throw_baseline.slx? 1) argument  2) repo layout  3) same folder  4) MATLAB path
+name = 'Gen3_throw_baseline.slx';
+cands = {given, fullfile(here,'..','models','original',name), fullfile(here,name), which(name)};
+f = '';
+for k = 1:numel(cands)
+    c = cands{k};
+    if ~isempty(c) && isfile(c), f = c; return; end
+end
+error(['Gen3_throw_baseline.slx not found. Pass its full path as an argument, ' ...
+       'e.g. build_stage3_slot(''C:/SME_Capstone/models/original/Gen3_throw_baseline.slx'')']);
 end

@@ -1,13 +1,15 @@
-function cmp = test_stage3_slot(inputMat)
+function cmp = test_stage3_slot(inputMat, srcfile)
 % TEST_STAGE3_SLOT  The slot must change nothing while J2_Actuator is a pass-through.
 %   Runs the original Gen3 throw baseline and Gen3_J2_slot.slx with the same reference
 %   trajectory and compares q, qd (7 joints) and the joint torques.
 %
 %   inputMat : the baseline input MAT with q_cmd, qd_cmd, qdd_cmd, t_release_plan
 %              (default 'baseline_input_decel.mat' on the MATLAB path; it is on Minhyuk's PC)
+%   srcfile  : (optional) full path of Gen3_throw_baseline.slx, found automatically otherwise
 %   Pass     : max |difference| < 1e-9 for every signal.
 %   Output   : stage3_robot/results/stage3_slot_check.csv, stage3_slot_check.png
 if nargin < 1, inputMat = 'baseline_input_decel.mat'; end
+if nargin < 2, srcfile = ''; end
 here = fileparts(mfilename('fullpath'));
 S = load(inputMat);
 need = {'q_cmd','qd_cmd','qdd_cmd','t_release_plan'};
@@ -16,7 +18,7 @@ assert(isempty(miss), 'Input MAT is missing: %s', strjoin(miss,', '));
 
 orig = 'Gen3_throw_baseline'; slot = 'Gen3_J2_slot';
 for mdl = {orig, slot}, if bdIsLoaded(mdl{1}), close_system(mdl{1},0); end, end
-load_system(fullfile(here,'..','models','original',[orig '.slx']));
+load_system(find_baseline(here, srcfile));
 load_system(fullfile(here,[slot '.slx']));
 out = struct();
 for mdl = {orig, slot}
@@ -73,4 +75,17 @@ function d = squeeze2(d)
 % timeseries data may be [N x 7] or [7 x 1 x N]; return [N x 7]
 if ndims(d) == 3, d = permute(d, [3 1 2]); d = reshape(d, size(d,1), []); end
 if size(d,2) ~= 7 && size(d,1) == 7, d = d.'; end
+end
+
+function f = find_baseline(here, given)
+% Where is Gen3_throw_baseline.slx? 1) argument  2) repo layout  3) same folder  4) MATLAB path
+name = 'Gen3_throw_baseline.slx';
+cands = {given, fullfile(here,'..','models','original',name), fullfile(here,name), which(name)};
+f = '';
+for k = 1:numel(cands)
+    c = cands{k};
+    if ~isempty(c) && isfile(c), f = c; return; end
+end
+error(['Gen3_throw_baseline.slx not found. Pass its full path as an argument, ' ...
+       'e.g. build_stage3_slot(''C:/SME_Capstone/models/original/Gen3_throw_baseline.slx'')']);
 end

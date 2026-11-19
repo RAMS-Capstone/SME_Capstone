@@ -41,6 +41,8 @@ if ~isempty(throwMat) && (isfile(throwMat) || ~isempty(which(throwMat)))
         m = mdl{1}; if ~bdIsLoaded(m), load_system(fullfile(here,[m '.slx'])); end
         in = Simulink.SimulationInput(m);
         for v = {'q_cmd','qd_cmd','qdd_cmd','t_release_plan'}, in = in.setVariable(v{1}, S.(v{1})); end
+        try, get_param(m,'SimMechanicsOpenEditorOnUpdate'); ...
+             in = in.setModelParameter('SimMechanicsOpenEditorOnUpdate','off'); catch, end  % no animation
         out = sim(in);
         t = out.q_actual.Time; q = as_rows(out.q_actual.Data);
         [tu, iu] = unique(S.q_cmd.Time, 'last'); Q = as_rows(S.q_cmd.Data);

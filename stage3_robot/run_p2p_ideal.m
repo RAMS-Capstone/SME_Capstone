@@ -31,6 +31,7 @@ wf = fieldnames(wsVars);
 for k = 1:numel(wf), in = in.setVariable(wf{k}, wsVars.(wf{k}), 'Workspace', m); end
 in = in.setModelParameter('StopTime', num2str(T), ...
     'OutputOption','AdditionalOutputTimes', 'OutputTimes', sprintf('0:0.001:%g', T));
+in = no_animation(in, m);
 out = sim(in);
 
 t   = out.q_actual.Time;
@@ -96,4 +97,14 @@ function y = resample_to(ts, t)
 [tu, iu] = unique(ts.Time, 'last');
 d = as_rows(ts.Data);
 y = interp1(tu, d(iu,:), t, 'linear', 'extrap');
+end
+
+function in = no_animation(in, m)
+% Do not open Mechanics Explorer / animate during this run (much faster, results unchanged).
+try
+    get_param(m, 'SimMechanicsOpenEditorOnUpdate');
+    in = in.setModelParameter('SimMechanicsOpenEditorOnUpdate', 'off');
+catch
+    % parameter not present in this release -> leave the model as it is
+end
 end

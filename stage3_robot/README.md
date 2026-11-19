@@ -10,6 +10,7 @@
 | 2 | Gen3 속도 한계 안의 느린 point-to-point 궤적 (`make_p2p_trajectory.m`, `run_p2p_ideal.m`) | **완료** (2026-11-20) |
 | 3 | 동작 중 M(q) 관성 변화 그림 (`analyze_inertia_p2p.m`) | **완료** (2026-11-20) |
 | 4 | CTC에 반사 관성 옵션 추가 | 예정 |
+| 3a | CTC에 공(페이로드) 반영, 놓는 순간 전환 (`build_stage3_payload.m`, `test_stage3_payload.m`) | 스크립트 완료, MATLAB 실행 대기 |
 
 ## 1. 관절 2 액추에이터 슬롯
 
@@ -99,3 +100,20 @@ run_stage3_p2p      % = make_p2p_trajectory + run_p2p_ideal + analyze_inertia_p2
 - **관성 결합이 크다.** 관절 4가 가속하면 그 가속도의 35%만큼 관절 2에 관성 토크가 걸린다(M24/M22). 교수님이 말한 "관절 사이 관성 변화"가 수치로 보인다.
 - **감속비 100으로는 결합이 숨지 않는다.** 반사 관성(0.249 kg·m²)은 M22의 약 20%라 변화율을 13%에서 11%로만 줄인다. "고감속비면 관절이 분리되어 보인다"는 이 관절에서는 성립하지 않는다.
 - **이 동작은 액추에이터 한계에 한참 못 미친다.** 관절 2 피크 11.3 N·m는 모터 iq 약 3.7 A(효율 0.7)이고, 모터 속도 약 480 rpm에서 역기전력은 약 1.5 V다. 전류 한계 20.9 A, 전압 한계 12.47 V보다 훨씬 작다. 그래서 이 동작에 액추에이터를 붙이면 차이는 주로 회전자 관성과 감속기 탄성에서 나올 것이다. 전류·전압 한계의 영향은 더 빠른 동작이나 18 V·10.4 A 사례에서 봐야 한다.
+
+## 3a. 페이로드를 아는 CTC (공 0.1 kg)
+
+진단 결과 정지 오차의 원인은 CTC 모델에 공이 없는 것이었다(`diagnose_gravity_mismatch.m`). 실제 로봇 제어기처럼 **페이로드 설정**을 넣는다.
+
+- **현실성 근거:** 공을 놓는 건 제어기 자신이 내리는 명령이다. 그래서 제어기는 놓는 시점을 안다. 실제 로봇도 잡을 때 페이로드를 설정하고 놓을 때 해제한다.
+- **구현:** `Gen3_J2_slot.slx`를 복사해 `Gen3_J2_payload.slx`를 만든다. CTC 안에서 `robotToTest`를 쓰는 블록 3개(중력, 질량 행렬, 속도 곱)에 공 포함 모델(`robotPayload`)을 쓰는 쌍둥이 블록을 붙인다. 그리고 Switch로 고른다.
+- **놓는 신호 통일:** 전환 조건은 `t < t_release_plan`이다. 실제 로봇에서 공을 떼는 용접 조인트 Step과 같은 파라미터를 쓴다. 전환 여부는 `ctc_payload_on`으로 기록한다.
+- **질량 오차 민감도:** 제어기가 0.12 kg(+20%)으로 알고 있는 경우도 같은 모델로 돌린다(`make_payload_robot`, 실행 시에만 덮어씀).
+
+```matlab
+cd stage3_robot
+build_stage3_payload                            % -> Gen3_J2_payload.slx (Gen3_J2_slot.slx 필요)
+test_stage3_payload('baseline_input_decel.mat') % 느린 동작 3사례 + 던지기 2사례
+```
+
+통과 기준: 페이로드 CTC의 느린 동작 최대 오차가 모든 관절에서 0.5 mrad 미만이어야 한다. 던지기에서는 `ctc_payload_on`이 `t_release_plan`에서 1 → 0이 되어야 한다. 결과는 `results/payload_check.csv`, `.png`에 저장된다.

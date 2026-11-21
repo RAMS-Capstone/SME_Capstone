@@ -1,0 +1,45 @@
+[1/5] ideal (no payload): reused C:\Users\rninh\Downloads\stage3_robot\results\p2p_ideal_out.mat
+[2/5] slow motion, payload 0.1 kg ...     Joint    MaxPosErr_rad    RmsPosErr_rad    MaxVelErr_rad_s    PeakSpeed_rad_s    PeakSpeed_pct_of_1p36    PeakTorque_Nm    RmsTorque_Nm    Cmd_minus_Applied_Nm
+    _____    _____________    _____________    _______________    _______________    _____________________    _____________    ____________    ____________________
+
+      1       5.5449e-09       1.5268e-09        3.1155e-08         3.1155e-08            2.2908e-06              0.01649        0.0092369              0          
+      2       2.1691e-05         5.39e-06        0.00027221            0.50024                36.783               11.281           7.1862              0          
+      3        1.353e-09       3.6127e-10        8.7803e-09         8.7803e-09            6.4561e-07              0.22969          0.14641              0          
+      4       2.1725e-05       5.3874e-06         0.0002719            0.50024                36.783              0.14348         0.080495              0          
+      5       1.4043e-09       3.9211e-10          8.92e-09           8.92e-09            6.5588e-07           0.00027343        0.0001536              0          
+      6       2.7071e-08       7.7474e-09        1.7347e-07         1.7347e-07            1.2755e-05             0.018524         0.010357              0          
+      7       1.5093e-09       4.2104e-10        9.5404e-09         9.5404e-09             7.015e-07           0.00035224       0.00019788              0          
+
+[payload] Joint 2: max error 0.0217 mrad, peak speed 0.500 rad/s (37% of limit), peak torque 11.28 N m
+[2/5] done (121 s)
+[3/5] slow motion, payload set 0.12 kg ...     Joint    MaxPosErr_rad    RmsPosErr_rad    MaxVelErr_rad_s    PeakSpeed_rad_s    PeakSpeed_pct_of_1p36    PeakTorque_Nm    RmsTorque_Nm    Cmd_minus_Applied_Nm
+    _____    _____________    _____________    _______________    _______________    _____________________    _____________    ____________    ____________________
+
+      1       0.00037937       0.00014728         0.0010268          0.0010268             0.075502              0.016437        0.0092181              0          
+      2        0.0013687       0.00094955         0.0010864            0.49943               36.723                11.273           7.1809              0          
+      3       0.00045959       0.00014359         0.0014294          0.0014294              0.10511               0.22929          0.14613              0          
+      4        0.0029445        0.0020805         0.0026949            0.49898                36.69                0.1422         0.082786              0          
+      5        0.0002229       9.4555e-05        0.00073614         0.00073614             0.054128            0.00027198       0.00015977              0          
+      6        0.0027096        0.0016856         0.0032588          0.0032588              0.23962              0.018066        0.0099373              0          
+      7       0.00059119        0.0003349         0.0014266          0.0014266               0.1049            0.00034377       0.00018995              0          
+
+[payload_0p12] Joint 2: max error 1.37 mrad, peak speed 0.499 rad/s (37% of limit), peak torque 11.27 N m
+[3/5] done (227 s)
+[4/5] throw, Gen3_J2_slot ... done (5 s)
+[5/5] throw, Gen3_J2_payload ... done (29 s)
+     Motion             Case            J2_maxErr_mrad    J4_maxErr_mrad    J6_maxErr_mrad    AllJoints_maxErr_mrad    J2_holdOrPostErr_mrad    J4_holdOrPostErr_mrad    PayloadOff_at_s    t_release_s
+    _________    ___________________    ______________    ______________    ______________    _____________________    _____________________    _____________________    _______________    ___________
+
+    {'p2p'  }    {'ideal'          }         7.0537            15.981             20.844              20.844                   -6.9857                   14.924                NaN              NaN    
+    {'p2p'  }    {'payload'        }       0.021691          0.021725         2.7071e-05            0.021725                -0.0051685                0.0051606                NaN              NaN    
+    {'p2p'  }    {'payload_0p12'   }         1.3687            2.9445             2.7096              2.9445                    1.3565                  -2.8141                NaN              NaN    
+    {'throw'}    {'Gen3_J2_slot'   }         10.954            23.194             159.89              159.89                   0.33929                 0.046799                NaN              2.1    
+    {'throw'}    {'Gen3_J2_payload'}       0.017851          0.023121           0.026266            0.026266                 0.0096191                 0.011445                2.1              2.1    
+
+PASS: payload-aware CTC removes the hold error (max 0.0217 mrad on all joints).
+
+ans = 
+
+  다음 필드를 포함한 struct:
+
+    table: [5×10 table]

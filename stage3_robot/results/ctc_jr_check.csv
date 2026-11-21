@@ -1,0 +1,2 @@
+off_vs_payload_q_maxdiff_rad,off_vs_payload_tau_maxdiff_Nm,rebuild_off_maxdiff_Nm,rebuild_on_maxdiff_Nm,Jr_kgm2,Jr_times_a2_peak_Nm,tau2_on_minus_off_peak_Nm,on_maxErr_j2_mrad,on_maxErr_j4_mrad,on_maxErr_all_mrad
+0,0,0.00468276365808507,0.00161219053171102,0.249,0.0786767311797787,0.0236390545702478,2.5346176704406,5.96153667519753,6.24805305693711

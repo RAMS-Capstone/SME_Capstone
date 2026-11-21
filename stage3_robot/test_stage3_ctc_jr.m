@@ -66,7 +66,7 @@ f = figure('Visible','off','Position',[50 50 1000 650]); tiledlayout(2,1);
 nexttile; plot(LA.t, LA.tcm(:,2), 'LineWidth',2); hold on; plot(LB.t, LB.tcm(:,2), '--');
 ylabel('CTC \tau_2 (N m)'); grid on; legend('ctc\_Jr off','ctc\_Jr(2) = 0.249','Location','best');
 title('Reflected-inertia option of the CTC (ideal plant, no rotor yet)');
-yyaxis right; plot(LB.t, dTau2, ':'); ylabel('on - off (N m)');
+yyaxis right; plot(LB.t, dTau2, ':', 'DisplayName','on - off (right axis)'); ylabel('on - off (N m)');
 nexttile; plot(LB.t, 1e3*eB(:,2), LB.t, 1e3*eB(:,4)); grid on; ylabel('error (mrad)'); xlabel('time (s)');
 legend('joint 2','joint 4'); title('Tracking error when the CTC assumes a rotor the plant does not have');
 exportgraphics(f, fullfile(rd,'ctc_jr_check.png'), 'Resolution',130); close(f);

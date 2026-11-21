@@ -1,0 +1,53 @@
+[1/2] slow motion, ctc_Jr off ...     Joint    MaxPosErr_rad    RmsPosErr_rad    MaxVelErr_rad_s    PeakSpeed_rad_s    PeakSpeed_pct_of_1p36    PeakTorque_Nm    RmsTorque_Nm    Cmd_minus_Applied_Nm
+    _____    _____________    _____________    _______________    _______________    _____________________    _____________    ____________    ____________________
+
+      1       5.5449e-09       1.5268e-09        3.1155e-08         3.1155e-08            2.2908e-06              0.01649        0.0092369              0          
+      2       2.1691e-05         5.39e-06        0.00027221            0.50024                36.783               11.281           7.1862              0          
+      3        1.353e-09       3.6127e-10        8.7803e-09         8.7803e-09            6.4561e-07              0.22969          0.14641              0          
+      4       2.1725e-05       5.3874e-06         0.0002719            0.50024                36.783              0.14348         0.080495              0          
+      5       1.4043e-09       3.9211e-10          8.92e-09           8.92e-09            6.5588e-07           0.00027343        0.0001536              0          
+      6       2.7071e-08       7.7474e-09        1.7347e-07         1.7347e-07            1.2755e-05             0.018524         0.010357              0          
+      7       1.5093e-09       4.2104e-10        9.5404e-09         9.5404e-09             7.015e-07           0.00035224       0.00019788              0          
+
+[ctc_off] Joint 2: max error 0.0217 mrad, peak speed 0.500 rad/s (37% of limit), peak torque 11.28 N m
+[1/2] done (116 s)
+[2/2] slow motion, ctc_Jr(2) = 0.249 ...     Joint    MaxPosErr_rad    RmsPosErr_rad    MaxVelErr_rad_s    PeakSpeed_rad_s    PeakSpeed_pct_of_1p36    PeakTorque_Nm    RmsTorque_Nm    Cmd_minus_Applied_Nm
+    _____    _____________    _____________    _______________    _______________    _____________________    _____________    ____________    ____________________
+
+      1        0.0055083        0.0019766          0.016195           0.016195               1.1908              0.016713        0.0092689              0          
+      2        0.0025346        0.0013352         0.0061694            0.49665               36.518                11.276           7.1832              0          
+      3        0.0025138        0.0008504          0.011131           0.011131              0.81848               0.23065           0.1467              0          
+      4        0.0059615        0.0030554          0.014412            0.49243               36.208               0.16084         0.089047              0          
+      5        0.0062481        0.0024121          0.012928           0.012928              0.95061            0.00031354       0.00017323              0          
+      6        0.0045835        0.0023096          0.011034           0.011034              0.81133              0.017623        0.0099094              0          
+      7       7.1676e-05       3.0212e-05        0.00015466         0.00015466             0.011372              0.000335       0.00018932              0          
+
+[ctc_jr_on] Joint 2: max error 2.53 mrad, peak speed 0.497 rad/s (37% of limit), peak torque 11.28 N m
+[2/2] done (287 s)
+     off_vs_payload_q_maxdiff_rad: 0
+    off_vs_payload_tau_maxdiff_Nm: 0
+           rebuild_off_maxdiff_Nm: 0.0047
+            rebuild_on_maxdiff_Nm: 0.0016
+                          Jr_kgm2: 0.2490
+              Jr_times_a2_peak_Nm: 0.0787
+        tau2_on_minus_off_peak_Nm: 0.0236
+                on_maxErr_j2_mrad: 2.5346
+                on_maxErr_j4_mrad: 5.9615
+               on_maxErr_all_mrad: 6.2481
+
+PASS: CTC = (M + diag(ctc_Jr))*a + C*qd + g; option off is identical to Gen3_J2_payload.
+
+ans = 
+
+  다음 필드를 포함한 struct:
+
+     off_vs_payload_q_maxdiff_rad: 0
+    off_vs_payload_tau_maxdiff_Nm: 0
+           rebuild_off_maxdiff_Nm: 0.0047
+            rebuild_on_maxdiff_Nm: 0.0016
+                          Jr_kgm2: 0.2490
+              Jr_times_a2_peak_Nm: 0.0787
+        tau2_on_minus_off_peak_Nm: 0.0236
+                on_maxErr_j2_mrad: 2.5346
+                on_maxErr_j4_mrad: 5.9615
+               on_maxErr_all_mrad: 6.2481

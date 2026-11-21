@@ -22,9 +22,20 @@ assert(isfile(fullfile(here,'Gen3_J2_payload.slx')), 'Run build_stage3_payload f
 load_system(fullfile(here,'Gen3_J2_payload.slx'));
 mw = get_param('Gen3_J2_payload','ModelWorkspace');
 rb012 = make_payload_robot(mw.getVariable('robotToTest'), 0.12);
-r = { run_p2p_ideal(p2pMat, 'Gen3_J2_slot',    'ideal'), ...
-      run_p2p_ideal(p2pMat, 'Gen3_J2_payload', 'payload'), ...
-      run_p2p_ideal(p2pMat, 'Gen3_J2_payload', 'payload_0p12', struct('robotPayload', rb012)) };
+nRuns = 3 + 2*(~isempty(throwMat));
+% case 1 (no payload) is the same run as run_p2p_ideal -> reuse it if it already exists
+idealMat = fullfile(here,'results','p2p_ideal_out.mat');
+if isfile(idealMat)
+    Li = load(idealMat);
+    r1 = struct('t',Li.t,'e',Li.qr - Li.q,'tag','ideal');
+    fprintf('[1/%d] ideal (no payload): reused %s\n', nRuns, idealMat);
+else
+    r1 = timed_run(1, nRuns, 'ideal (no payload)', @() run_p2p_ideal(p2pMat,'Gen3_J2_slot','ideal'));
+end
+r = { r1, ...
+      timed_run(2, nRuns, 'payload 0.1 kg', @() run_p2p_ideal(p2pMat,'Gen3_J2_payload','payload')), ...
+      timed_run(3, nRuns, 'payload set 0.12 kg', ...
+                @() run_p2p_ideal(p2pMat,'Gen3_J2_payload','payload_0p12', struct('robotPayload', rb012))) };
 rows = {};
 for k = 1:3
     hw = r{k}.t >= 3.6 & r{k}.t <= 4.4;           % tilted hold window
@@ -37,13 +48,16 @@ end
 thr = {};
 if ~isempty(throwMat) && (isfile(throwMat) || ~isempty(which(throwMat)))
     S = load(throwMat); tr = S.t_release_plan;
-    for mdl = {'Gen3_J2_slot', 'Gen3_J2_payload'}
-        m = mdl{1}; if ~bdIsLoaded(m), load_system(fullfile(here,[m '.slx'])); end
+    mlist = {'Gen3_J2_slot', 'Gen3_J2_payload'};
+    for im = 1:2
+        m = mlist{im}; if ~bdIsLoaded(m), load_system(fullfile(here,[m '.slx'])); end
+        fprintf('[%d/%d] throw, %s ... ', 3+im, nRuns, m); tk = tic;
         in = Simulink.SimulationInput(m);
         for v = {'q_cmd','qd_cmd','qdd_cmd','t_release_plan'}, in = in.setVariable(v{1}, S.(v{1})); end
         try, get_param(m,'SimMechanicsOpenEditorOnUpdate'); ...
              in = in.setModelParameter('SimMechanicsOpenEditorOnUpdate','off'); catch, end  % no animation
         out = sim(in);
+        fprintf('done (%.0f s)\n', toc(tk));
         t = out.q_actual.Time; q = as_rows(out.q_actual.Data);
         [tu, iu] = unique(S.q_cmd.Time, 'last'); Q = as_rows(S.q_cmd.Data);
         e = interp1(tu, Q(iu,:), t, 'linear', 'extrap') - q;
@@ -97,4 +111,10 @@ end
 function d = as_rows(d)
 if ndims(d) == 3, d = reshape(permute(d,[3 1 2]), size(d,3), []); end
 if size(d,2) ~= 7 && size(d,1) == 7, d = d.'; end
+end
+
+function r = timed_run(k, n, label, fn)
+fprintf('[%d/%d] slow motion, %s ... ', k, n, label); tk = tic;
+r = fn();
+fprintf('[%d/%d] done (%.0f s)\n', k, n, toc(tk));
 end

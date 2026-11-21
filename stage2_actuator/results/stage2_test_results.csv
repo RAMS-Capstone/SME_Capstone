@@ -1,0 +1,13 @@
+Test,Metric,Simulink,Python,Pass
+T1,tauJ_tail_Nm,9.9999,9.9999,true
+T1,deflection_tail_rad,0.00071429,0.00071429,true
+T1,tauJ_peak_Nm,18.581,18.581,true
+T1,iq_tail_A,-2.2924,-2.2924,true
+T2,tauJ_maxdiff_vs_T1_Nm,0,0,true
+T2,iq_tail_A (sign flips),2.2924,2.2924,true
+T3,iq_cmd_max_A,20.9,20.9,true
+T3,tauJ_tail_Nm,91.169,91.17,true
+T4,max_q_minus_ideal_mrad,22.303,22.303,true
+T4,iq_peak_A,2.4667,2.4667,true
+T4b,max_q_minus_ideal_mrad,0.08131,0.081313,true
+all,vmag_peak_V (<= Vmax),8.0761,12.471,true

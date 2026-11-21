@@ -64,3 +64,11 @@ test_stage2_actuator       % 시험 5회 -> stage2_test_results.csv, stage2_test
 | `test_stage2_actuator.m` | 시험 5회, Python 기준과 자동 비교 |
 | `find_stage1.m` | 단계 1 파일 찾기 |
 | `verify_stage2.py`, `stage2_reference.json/.png` | MATLAB과 독립인 Python 기준 모델과 결과 |
+
+## 결과 (2026-11-21, 민혁 PC, 틀 그대로 실행)
+
+12개 항목 모두 통과했고, Python 기준과 표시 자릿수까지 같다(`results/stage2_test_results.csv`, `results/stage2_tests.png`).
+
+- **감속기 공진 피크:** 10 N·m 계단에서 순간 18.6 N·m(1.86배)가 나온다. 100 N·m 명령(전류 제한으로 최종 91.2 N·m)에서는 그래프상 **순간 약 170 N·m**까지 출렁인다. 이는 CSG-17-100의 반복 피크 한계 70 N·m는 물론 순간 피크 한계 125 N·m도 넘는 값이다. 탄성 감속기에 토크를 계단처럼 걸면 감속기 한계를 넘을 수 있다는 뜻이다. Gen3에서는 CTC 명령이 부드러워서 괜찮을 것으로 보이지만, 던지기의 릴리스·감속 구간에서 감속기 토크(τ_J) 피크를 반드시 확인해야 한다.
+- **입력 모양의 영향:** 처음 실행에서는 계단이 10 ms 경사로 들어가(입력 포트 선형 보간) 피크가 16.7 N·m였다. 공진 주기(약 26 ms)에 비해 짧은 경사만으로도 출렁임이 줄어든다.
+- **회전자 관성 보상:** 진자에서 같은 명령이면 22.3 mrad 어긋나지만 Jr·q̈ 피드포워드를 넣으면 0.08 mrad로 준다. Gen3 CTC의 `ctc_Jr`가 하는 일이다.

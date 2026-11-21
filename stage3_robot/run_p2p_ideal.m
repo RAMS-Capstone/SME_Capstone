@@ -29,8 +29,9 @@ for v = {'q_cmd','qd_cmd','qdd_cmd','t_release_plan'}
 end
 wf = fieldnames(wsVars);
 for k = 1:numel(wf), in = in.setVariable(wf{k}, wsVars.(wf{k}), 'Workspace', m); end
-in = in.setModelParameter('StopTime', num2str(T), ...
-    'OutputOption','AdditionalOutputTimes', 'OutputTimes', sprintf('0:0.001:%g', T));
+% Denser log by interpolating between solver steps (RefineOutputTimes). Forcing 1 ms output
+% times (AdditionalOutputTimes) made the variable-step solver stop ~20x more often: 10+ min per run.
+in = in.setModelParameter('StopTime', num2str(T), 'OutputOption','RefineOutputTimes', 'Refine','10');
 in = no_animation(in, m);
 out = sim(in);
 

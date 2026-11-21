@@ -66,8 +66,10 @@ end
 % ======================================================================
 function [t, L] = run_step(tb, act, bench, a, s)
 T = 0.6;
-u = setinterpmethod(timeseries([0; a; a], [0; 0.01; T]), 'zoh');
-z = setinterpmethod(timeseries([0; 0], [0; T]), 'zoh');
+% a true step at 0.01 s: two samples at the same time, so it stays a step even though the
+% root inports interpolate linearly (a 0..10 ms ramp would damp the gear resonance peak)
+u = timeseries([0; 0; a; a], [0; 0.01; 0.01; T]);
+z = timeseries([0; 0], [0; T]);
 act.s = s; bench.fixed = 1;
 [t, L] = simulate(tb, act, bench, u, z, T);
 end

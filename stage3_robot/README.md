@@ -9,7 +9,7 @@
 | 1 | 관절 2 액추에이터 슬롯 (`build_stage3_slot.m`, `test_stage3_slot.m`) | **완료** (2026-11-19, 원본과 차이 0) |
 | 2 | Gen3 속도 한계 안의 느린 point-to-point 궤적 (`make_p2p_trajectory.m`, `run_p2p_ideal.m`) | **완료** (2026-11-20) |
 | 3 | 동작 중 M(q) 관성 변화 그림 (`analyze_inertia_p2p.m`) | **완료** (2026-11-20) |
-| 4 | CTC에 반사 관성 옵션 추가 | 예정 |
+| 4 | CTC에 반사 관성 옵션 추가 (`build_stage3_ctc_jr.m`, `test_stage3_ctc_jr.m`) | 스크립트 완료, MATLAB 실행 대기 |
 | 3a | CTC에 공(페이로드) 반영, 놓는 순간 전환 (`build_stage3_payload.m`, `test_stage3_payload.m`) | **완료** (2026-11-21) |
 
 ## 1. 관절 2 액추에이터 슬롯
@@ -133,3 +133,23 @@ test_stage3_payload('baseline_input_decel.mat') % 느린 동작 3사례 + 던지
 - **질량 설정이 틀린 만큼 오차가 비례한다.** +20% 오설정에서 정지 구간 오차는 공을 몰랐을 때의 −0.19배(관절 2), −0.19배(관절 4)다. 설정 오차에 선형이고 부호가 반대다.
 - **전환 시점 확인:** `ctc_payload_on`은 정확히 t = 2.1 s(`t_release_plan`)에 1 → 0이 되었다. 놓은 뒤 오차도 0.01 mrad 수준이다.
 - **실행 시간:** 느린 동작(8.5 s)은 약 2분(페이로드 모델), 던지기(4 s)는 5–29초. `run_p2p_ideal`이 1 ms 출력 시각을 강제해 실행당 10분 이상 걸리던 문제는 출력 보간(`Refine 10`)으로 고쳤다.
+
+## 4. CTC의 반사 관성 옵션
+
+설계 결정 2번("CTC는 액추에이터를 안다")의 구현이다. 감속기가 달린 모터는 관절에 반사 관성 Jr = N²·(Jm + J_WG)를 더한다. 관절 2의 Jr은 100²·(1.7×10⁻⁵ + 0.79×10⁻⁵) = 0.249 kg·m²다. 실제 제어기도 데이터시트의 회전자 관성을 알기 때문에 질량 행렬 대각에 더한다.
+
+```
+τ = (M(q) + diag(ctc_Jr))·a + C(q,q̇)·q̇ + g(q),   a = q̈_ref + Kp·e + Kd·ė
+```
+
+- `Gen3_J2_payload.slx`를 복사해 `Gen3_J2_ctc.slx`를 만든다. **앞으로 단계 3의 작업 모델은 이것이다**(슬롯 + 페이로드 + Jr 옵션).
+- `ctc_Jr`는 7×1 벡터이고 기본값 0(꺼짐)이다. 액추에이터(회전자 포함)를 슬롯에 넣을 때만 `[0 0.249 0 0 0 0 0]'`로 켠다.
+- 검증 `test_stage3_ctc_jr`:
+  1. 꺼짐 상태가 `Gen3_J2_payload` 결과와 완전히 같은지 확인한다.
+  2. 켜짐·꺼짐 모두에서, Simulink CTC 출력이 MATLAB에서 재계산한 `inverseDynamics + ctc_Jr.*a`와 같은지 확인한다.
+  3. 참고: 켜짐 상태로 회전자가 없는 로봇을 돌리면 "제어기가 없는 회전자를 있다고 믿는" 불일치가 생긴다. 그 오차 크기를 기록한다.
+
+```matlab
+build_stage3_ctc_jr      % -> Gen3_J2_ctc.slx
+test_stage3_ctc_jr       % 느린 동작 2회 (약 4분)
+```

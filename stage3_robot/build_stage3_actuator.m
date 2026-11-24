@@ -13,9 +13,9 @@ function build_stage3_actuator(actuatorModel, solver)
 %      start pose here (j2_actuator_init), so the gear spring starts carrying the first CTC torque
 %      instead of -Kg*q0(2). Runs with another input recompute it (run_stage3_actuator does).
 %   2  ctc_Jr = [0 Jr 0 0 0 0 0]' (on): the CTC knows the rotor it now drives (design decision 2).
-%   3  solver ode45, MaxStep 2e-4 s, RelTol 1e-5 (1 kHz current loop and 40 Hz gear mode next to
-%      the 10 rad/s CTC loop; explicit is stable at this step and needs no Jacobians).
-%      The ideal models keep their own solver settings.
+%   3  solver ode23t, MaxStep 1e-3 s, RelTol 1e-4 (stiff: 1 kHz current loop, 40 Hz gear mode,
+%      10 rad/s CTC loop). Fastest setting in time_check_actuator (2026-11-24); run_stage3_actuator
+%      checks it against a 5x smaller step. The ideal models keep their own solver settings.
 %   4  speed: the robotics blocks run as 'Code generation' instead of 'Interpreted execution'
 %      (set_robot_blocks, same numbers, needs a C compiler), and the root Inverse Kinematics chain,
 %      which only feeds a Scope, is commented out. With interpreted blocks and the small step a
@@ -79,7 +79,7 @@ fprintf(['Start alignment at q0: q0(2) = %.4f rad, CTC holding torque tau0(2) = 
         q0(2), tau0(2), act.theta_m0, -act.Kg*q0(2));
 
 % ---- 3. solver ----
-sp = struct('SolverName','ode45', 'MaxStep','2e-4', 'RelTol','1e-5', 'AbsTol','auto');
+sp = struct('SolverName','ode23t', 'MaxStep','1e-3', 'RelTol','1e-4', 'AbsTol','auto');
 rbMode = 'Code generation';
 f = fieldnames(solver); for k = 1:numel(f), sp.(f{k}) = solver.(f{k}); end
 if isfield(sp,'RobotBlocks'), rbMode = sp.RobotBlocks; sp = rmfield(sp,'RobotBlocks'); end

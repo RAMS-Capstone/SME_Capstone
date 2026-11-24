@@ -18,17 +18,21 @@ function R = run_stage3_actuator(opts)
 %   opts fields (all optional)
 %     reuseIdeal  true   reuse results/p2p_ctc_off_out.mat (test_stage3_ctc_jr) if it exists
 %     cases       {'act_jr','act_nojr'}
-%     solver      struct of model parameters for the actuator runs, e.g. struct('MaxStep','5e-5')
-%                 to check that the step size does not change the result. time_check_actuator
-%                 measures how fast each setting is.
+%     solver      model parameters for the actuator runs, merged into the default
+%                 ode23t / MaxStep 1e-3 / RelTol 1e-4 (fastest in time_check_actuator, 2026-11-24:
+%                 ~34 ms per step, about 7 min for 8.5 s)
+%     convergence true   also run act_jr for the first 2 s with MaxStep 2e-4 / RelTol 1e-5 and
+%                 report how much q2 and tau_J change (results/stage3_actuator_convergence.csv)
 %     stopTime    simulated seconds of the actuator runs (default: whole motion, 8.5 s), e.g. 2
 %                 for a quick look at the hold and the first part of the move
 %   Needs  : Gen3_J2_ctc.slx, Gen3_J2_act.slx (build_stage3_actuator), p2p_input.mat (made if missing)
 %   Output : results/stage3_actuator_compare.csv, results/stage3_actuator_compare.png,
+%            results/stage3_actuator_convergence.csv,
 %            results/p2p_<case>_metrics.csv / _out.mat (run_p2p_ideal)
 here = fileparts(mfilename('fullpath'));
 if nargin < 1, opts = struct(); end
-d = struct('reuseIdeal', true, 'cases', {{'act_jr','act_nojr'}}, 'solver', struct(), 'stopTime', []);
+d = struct('reuseIdeal', true, 'cases', {{'act_jr','act_nojr'}}, 'solver', struct(), 'stopTime', [], ...
+           'convergence', true);
 fn = fieldnames(d);
 for k = 1:numel(fn), if ~isfield(opts,fn{k}), opts.(fn{k}) = d.(fn{k}); end, end
 ensure_stage3_model('Gen3_J2_act');      % builds the missing models on a fresh checkout
@@ -54,7 +58,9 @@ m = 'Gen3_J2_act';
 if ~bdIsLoaded(m), load_system(fullfile(here,[m '.slx'])); end
 mw = get_param(m,'ModelWorkspace');
 act0 = mw.getVariable('act'); JrOn = mw.getVariable('ctc_Jr');
-simP = opts.solver; simP.Refine = '1';     % solver step is already small: no output refinement
+simP = struct('SolverName','ode23t', 'MaxStep','1e-3', 'RelTol','1e-4');
+f = fieldnames(opts.solver); for k = 1:numel(f), simP.(f{k}) = opts.solver.(f{k}); end
+simP.Refine = '1';     % solver step is already small: no output refinement
 if ~isempty(opts.stopTime), simP.StopTime = num2str(opts.stopTime); end
 C = struct([]);
 for ic = 1:numel(opts.cases)
@@ -123,7 +129,33 @@ for ic = 1:numel(C), plot(C(ic).act_t, 1e3*C(ic).act_log(:,10)); end
 ylabel('gear deflection (mrad)'); xlabel('time (s)'); grid on;
 exportgraphics(f, fullfile(rd,'stage3_actuator_compare.png'), 'Resolution',130); close(f);
 
-R = struct('table', T, 'cases', C);
+% ---------------- step-size check: act_jr again with a 5x smaller step ----------------
+Cv = [];
+ia = find(strcmp({C.tag}, 'act_jr'), 1);
+if opts.convergence && ~isempty(ia)
+    fine = simP; fine.MaxStep = '2e-4'; fine.RelTol = '1e-5';
+    tEnd = 2; if ~isempty(opts.stopTime), tEnd = min(tEnd, opts.stopTime); end
+    fine.StopTime = num2str(tEnd);
+    [act, ~] = j2_actuator_init(m, S, JrOn);
+    fprintf('[check] act_jr, first %g s, MaxStep 2e-4 RelTol 1e-5 ... ', tEnd); tk = tic;
+    F = run_p2p_ideal(p2pMat, m, 'act_jr_fine', struct('act', act, 'ctc_Jr', JrOn), fine);
+    fprintf('done (%.0f s)\n', toc(tk));
+    a = C(ia); tg = (0:1e-3:tEnd)';
+    dq2  = 1e3*max(abs(rs(a.t, a.q(:,2), tg) - rs(F.t, F.q(:,2), tg)));
+    dq   = 1e3*max(abs(rs(a.t, a.q, tg) - rs(F.t, F.q, tg)), [], 'all');
+    dtau = max(abs(rs(a.act_t, a.act_log(:,9), tg) - rs(F.act_t, F.act_log(:,9), tg)));
+    diq  = max(abs(rs(a.act_t, a.act_log(:,2), tg) - rs(F.act_t, F.act_log(:,2), tg)));
+    Cv = table(tEnd, string(simP.MaxStep), dq2, dq, dtau, diq, 'VariableNames', {'Window_s', ...
+        'MaxStep_used','DiffQ2_mrad','DiffQall_mrad','DiffTauJ_Nm','DiffIq_A'});
+    disp(Cv); writetable(Cv, fullfile(rd,'stage3_actuator_convergence.csv'));
+    if dq < 0.01
+        fprintf('Step size OK: q changes by %.2g mrad with a 5x smaller step (< 0.01 mrad).\n', dq);
+    else
+        warning('Step size matters: q changes by %.3g mrad with a 5x smaller step. Use a smaller MaxStep.', dq);
+    end
+end
+
+R = struct('table', T, 'cases', C, 'convergence', Cv);
 assert(okAll, 'Stage-3 actuator check failed:\n  %s', strjoin(msgs, '\n  '));
 fprintf('PASS: actuator starts aligned, stays inside current, voltage and gear limits.\n');
 end

@@ -199,7 +199,14 @@ run_stage3_actuator      % 느린 동작: ideal(재사용 가능) + act_jr + act
 - 필요한 모델 순서: `build_stage3_slot` → `build_stage3_payload` → `build_stage3_ctc_jr` → `build_stage3_actuator`. 저장소에는 `Gen3_J2_slot.slx`만 있다. 새로 받은 폴더에서는 `run_stage3_actuator`, `time_check_actuator`, 단계 3 테스트들이 빠진 모델(`ensure_stage3_model`)과 `p2p_input.mat`(`ensure_p2p_input`)을 처음 실행할 때 알아서 만든다.
 - `ideal`은 `test_stage3_ctc_jr`가 남긴 `results/p2p_ctc_off_out.mat`가 있으면 재사용한다. 없으면 `Gen3_J2_ctc`(ctc_Jr 꺼짐)로 한 번 돌린다.
 - 스텝 크기 영향 확인: `run_stage3_actuator(struct('solver',struct('MaxStep','1e-4'),'cases',{{'act_jr'}}))`.
-- **실행 시간:** 처음 설정(ode23t, MaxStep 1e-4)에서는 `act_jr` 한 번이 20분 넘게 끝나지 않았다. ode45, 2e-4, 2 s로 줄여도 15분을 넘겼다(2026-11-24, 민혁 PC). 원인은 CTC의 로보틱스 블록 6개와 쓰지 않는 IK 블록이 **'Interpreted execution'**(매 호출마다 MATLAB 코드 실행)으로 되어 있었던 것으로 본다. 액추에이터 때문에 스텝이 수십 배 많아지면서 이 비용이 그대로 곱해졌다. 그래서 `build_stage3_actuator`가 이제 다음을 한다. (1) 로보틱스 블록을 'Code generation'으로 바꾼다(`set_robot_blocks`, 결과는 같고 C 컴파일러 필요, `mex -setup C`). (2) Scope에만 연결된 IK 체인을 주석 처리한다. (3) 기본 솔버를 ode45, 2e-4로 바꾼다. 다시 빌드한 뒤 `time_check_actuator`(0.05 s 단위로 설정별 스텝당 시간과 전체 예상 시간 출력)로 먼저 확인하고 `run_stage3_actuator`를 돌린다. 앞부분만 빨리 보려면 `run_stage3_actuator(struct('stopTime', 2))`를 쓴다.
+- **실행 시간:** 처음에는 로보틱스 블록이 'Interpreted execution'이라 한 번 실행에 수 시간이 걸렸다. `build_stage3_actuator`가 이 블록들을 'Code generation'으로 바꾸고(`set_robot_blocks`, 결과는 같고 C 컴파일러 필요), Scope에만 연결된 IK 체인을 주석 처리한다. `time_check_actuator`(2026-11-24, 민혁 PC, 0.05 s 구간)로 설정을 비교한 결과는 아래와 같다. 그래서 기본 설정을 **ode23t, MaxStep 1e-3, RelTol 1e-4**로 정했다. `run_stage3_actuator`는 같은 사례를 스텝 1/5(2e-4)로 처음 2 s만 다시 돌려 차이도 기록한다(`stage3_actuator_convergence.csv`, 기준 0.01 mrad).
+
+  | 설정 | 스텝당 | 8.5 s 예상 |
+  | --- | --- | --- |
+  | act, ode45 2e-4 | 558 ms | 약 400분 |
+  | act, ode45 2e-4, 가속기 (두 번째 실행) | 13 ms | 약 10분 |
+  | **act, ode23t 1e-3** | 34 ms | **약 7분** |
+  | 참고: ideal, 자체 솔버 / ode45 2e-4 | 334 / 62 ms (대부분 초기화 15 s) | — |
 
 | 사례 | 모델 | CTC의 ctc_Jr(2) |
 | --- | --- | --- |

@@ -182,7 +182,8 @@ CTC ──τ_cmd(7)──► J2_Actuator_Slot ──τ_applied(7)──► Gen3
 | --- | --- | --- |
 | 모터축 초기 각도 정렬 | θm0 = s·N·(q0₂ + τ0₂/Kg), ωm0 = s·N·q̇0₂ (`j2_actuator_init.m`) | θm0 = 0이면 감속기가 −Kg·q0₂만큼 감긴 채 시작한다(q0₂ = 0.1 rad면 1400 N·m). 첫 CTC 토크 τ0만큼 미리 비틀어 두면 τ_J(0) = τ0라서 시작 순간 출렁임이 없다 |
 | CTC 반사 관성 | `ctc_Jr = [0 0.249 0 0 0 0 0]'` (켜짐이 기본) | 설계 결정 2. 비교용으로 꺼짐도 돌린다 |
-| 솔버 | `ode23t`, MaxStep 1e-4 s, RelTol 1e-5 (이 모델만) | 1 kHz 전류 루프와 약 40 Hz 감속기 모드가 10 rad/s CTC 루프와 같이 있어 stiff하다. 이상 모델들은 원래 설정 그대로 |
+| 솔버 | `ode45`, MaxStep 2e-4 s, RelTol 1e-5 (이 모델만) | 1 kHz 전류 루프(약 7000 rad/s)와 약 40 Hz 감속기 모드가 10 rad/s CTC 루프와 같이 있다. explicit 솔버로도 이 스텝이면 안정하고 Jacobian 계산이 없다. 이상 모델들은 원래 설정 그대로 |
+| 속도 | 로보틱스 블록 'Code generation', 쓰지 않는 IK 체인 주석 처리 | 아래 "실행 시간" |
 | 로그 | `j2_act_log`(iq_cmd, iq, id, vd, vq, \|v\|, ωm, Te, τ_J, 비틀림)를 결과 MAT에 함께 저장 | `run_p2p_ideal`에 모델 파라미터 인자(5번째)를 추가했다 |
 
 τ0는 CTC가 t = 0에 내는 토크를 같은 식으로 다시 계산한 값이다(공을 쥔 상태면 `robotPayload`). 입력이 바뀌면 `run_stage3_actuator`가 실행마다 다시 계산한다.
@@ -197,8 +198,8 @@ run_stage3_actuator      % 느린 동작: ideal(재사용 가능) + act_jr + act
 
 - 필요한 모델 순서: `build_stage3_slot` → `build_stage3_payload` → `build_stage3_ctc_jr` → `build_stage3_actuator`. `Gen3_J2_payload.slx`, `Gen3_J2_ctc.slx`는 저장소에 없으니 처음이면 위 순서대로 만든다.
 - `ideal`은 `test_stage3_ctc_jr`가 남긴 `results/p2p_ctc_off_out.mat`가 있으면 재사용한다. 없으면 `Gen3_J2_ctc`(ctc_Jr 꺼짐)로 한 번 돌린다.
-- 스텝 크기 영향 확인: `run_stage3_actuator(struct('solver',struct('MaxStep','5e-5'),'cases',{{'act_jr'}}))`.
-- **실행 시간:** 기본 설정(ode23t, MaxStep 1e-4)으로는 `act_jr` 한 번이 20분을 넘겼다(2026-11-24, 민혁 PC, 끝나지 않음). 이상 모델은 164초였다. 먼저 `time_check_actuator`로 짧은 구간(0.8 s)을 솔버 설정 4가지로 돌려 본다. 그러면 전체 예상 시간과 기준 설정 대비 차이가 나온다. 그다음 고른 설정으로 `run_stage3_actuator(struct('solver', struct('SolverName','ode45','MaxStep','2e-4')))`처럼 실행한다. 앞부분만 빨리 보려면 `struct('stopTime', 2)`를 쓴다.
+- 스텝 크기 영향 확인: `run_stage3_actuator(struct('solver',struct('MaxStep','1e-4'),'cases',{{'act_jr'}}))`.
+- **실행 시간:** 처음 설정(ode23t, MaxStep 1e-4)에서는 `act_jr` 한 번이 20분 넘게 끝나지 않았다. ode45, 2e-4, 2 s로 줄여도 15분을 넘겼다(2026-11-24, 민혁 PC). 원인은 CTC의 로보틱스 블록 6개와 쓰지 않는 IK 블록이 **'Interpreted execution'**(매 호출마다 MATLAB 코드 실행)으로 되어 있었던 것으로 본다. 액추에이터 때문에 스텝이 수십 배 많아지면서 이 비용이 그대로 곱해졌다. 그래서 `build_stage3_actuator`가 이제 다음을 한다. (1) 로보틱스 블록을 'Code generation'으로 바꾼다(`set_robot_blocks`, 결과는 같고 C 컴파일러 필요, `mex -setup C`). (2) Scope에만 연결된 IK 체인을 주석 처리한다. (3) 기본 솔버를 ode45, 2e-4로 바꾼다. 다시 빌드한 뒤 `time_check_actuator`(0.05 s 단위로 설정별 스텝당 시간과 전체 예상 시간 출력)로 먼저 확인하고 `run_stage3_actuator`를 돌린다. 앞부분만 빨리 보려면 `run_stage3_actuator(struct('stopTime', 2))`를 쓴다.
 
 | 사례 | 모델 | CTC의 ctc_Jr(2) |
 | --- | --- | --- |

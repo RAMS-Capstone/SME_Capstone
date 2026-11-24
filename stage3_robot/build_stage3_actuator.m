@@ -13,12 +13,19 @@ function build_stage3_actuator(actuatorModel, solver)
 %      start pose here (j2_actuator_init), so the gear spring starts carrying the first CTC torque
 %      instead of -Kg*q0(2). Runs with another input recompute it (run_stage3_actuator does).
 %   2  ctc_Jr = [0 Jr 0 0 0 0 0]' (on): the CTC knows the rotor it now drives (design decision 2).
-%   3  solver ode23t (stiff: 1 kHz current loop, 40 Hz gear mode next to the 10 rad/s CTC loop),
-%      MaxStep 1e-4 s, RelTol 1e-5. The ideal models keep their own solver settings.
+%   3  solver ode45, MaxStep 2e-4 s, RelTol 1e-5 (1 kHz current loop and 40 Hz gear mode next to
+%      the 10 rad/s CTC loop; explicit is stable at this step and needs no Jacobians).
+%      The ideal models keep their own solver settings.
+%   4  speed: the robotics blocks run as 'Code generation' instead of 'Interpreted execution'
+%      (set_robot_blocks, same numbers, needs a C compiler), and the root Inverse Kinematics chain,
+%      which only feeds a Scope, is commented out. With interpreted blocks and the small step a
+%      run took hours (2026-11-24).
 %
 %   actuatorModel : (optional) full path of J2_Actuator.slx. Default ../stage2_actuator/J2_Actuator.slx;
 %                   built with build_stage2_actuator if it does not exist yet.
-%   solver        : (optional) struct overriding the solver settings, e.g. struct('MaxStep','5e-5')
+%   solver        : (optional) struct overriding the solver settings, e.g. struct('MaxStep','5e-5').
+%                   Field RobotBlocks = 'Interpreted execution' keeps the blocks interpreted
+%                   (when no C compiler is installed).
 here = fileparts(mfilename('fullpath'));
 src = 'Gen3_J2_ctc'; m = 'Gen3_J2_act';
 srcfile = fullfile(here,[src '.slx']);
@@ -72,9 +79,29 @@ fprintf(['Start alignment at q0: q0(2) = %.4f rad, CTC holding torque tau0(2) = 
         q0(2), tau0(2), act.theta_m0, -act.Kg*q0(2));
 
 % ---- 3. solver ----
-sp = struct('SolverName','ode23t', 'MaxStep','1e-4', 'RelTol','1e-5', 'AbsTol','auto');
+sp = struct('SolverName','ode45', 'MaxStep','2e-4', 'RelTol','1e-5', 'AbsTol','auto');
+rbMode = 'Code generation';
 f = fieldnames(solver); for k = 1:numel(f), sp.(f{k}) = solver.(f{k}); end
+if isfield(sp,'RobotBlocks'), rbMode = sp.RobotBlocks; sp = rmfield(sp,'RobotBlocks'); end
 f = fieldnames(sp);     for k = 1:numel(f), set_param(m, f{k}, sp.(f{k})); end
+
+% ---- 4. speed: compiled robotics blocks, unused IK chain off ----
+set_robot_blocks(m, rbMode);
+ik = find_system(m, 'SearchDepth',1, 'RegExp','on', 'ReferenceBlock','Inverse Kinematics$');
+for k = 1:numel(ik)
+    % IK block, its inputs (Coordinate Transformation Conversion, Constant1, Delay) and their inputs
+    chain = get_param(ik{k},'Handle');
+    for lvl = 1:2
+        src = [];
+        for h = chain
+            pc = get_param(h,'PortConnectivity');
+            src = [src, pc.SrcBlock]; %#ok<AGROW>
+        end
+        chain = unique([chain, src(src > 0)]);
+    end
+    for h = chain, set_param(h, 'Commented','on'); end
+    fprintf('Commented out the unused IK chain: %s\n', strjoin(get_param(chain,'Name'), ', '));
+end
 
 set_param(m,'Description', ['Gen3 + stage-2 joint-2 actuator in the slot (FOC, dq PMSM, rotor, elastic gear) ' ...
     '+ payload CTC with ctc_Jr on. Built by build_stage3_actuator.']);

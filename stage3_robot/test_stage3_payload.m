@@ -13,7 +13,7 @@ function R = test_stage3_payload(throwMat)
 %   throwMat : baseline input MAT (q_cmd, qd_cmd, qdd_cmd, t_release_plan). Part 2 is skipped if empty.
 %   Output   : results/payload_check.csv, results/payload_check.png
 here = fileparts(mfilename('fullpath'));
-if nargin < 1, throwMat = 'baseline_input_decel.mat'; end
+if nargin < 1, throwMat = fullfile(here,'baseline_input_decel.mat'); end
 p2pMat = fullfile(here,'p2p_input.mat');
 assert(isfile(p2pMat), 'Run make_p2p_trajectory first (needs %s).', p2pMat);
 assert(isfile(fullfile(here,'Gen3_J2_payload.slx')), 'Run build_stage3_payload first.');

@@ -1,4 +1,4 @@
-function res = run_p2p_ideal(inputMat, model, tag, wsVars)
+function res = run_p2p_ideal(inputMat, model, tag, wsVars, simParams)
 % RUN_P2P_IDEAL  Runs the slow point-to-point motion and evaluates it (stage 3, item 2).
 %   Default: IDEAL torque reference case (Gen3_J2_slot, J2_Actuator = pass-through).
 %   The same function evaluates other models on the same input (payload CTC, actuator, ...).
@@ -8,16 +8,20 @@ function res = run_p2p_ideal(inputMat, model, tag, wsVars)
 %   tag      : name used in the output files       (default 'ideal')
 %   wsVars   : struct of model-workspace overrides for this run only, e.g.
 %              struct('robotPayload', make_payload_robot(robotToTest, 0.12))
+%   simParams: struct of model parameters for this run only, applied after the defaults, e.g.
+%              struct('Refine','1') for the actuator model (its small solver step is dense already)
 %   Output (results/, names use tag; listed for tag = 'ideal'):
 %     p2p_ideal_metrics.csv   per joint: tracking error, peak speed vs limit, peak/RMS torque
 %     p2p_ideal.png           joints 2 and 4: reference vs actual, speed, torque
 %     joint2_p2p_trace.csv    same columns as data/joint2_baseline_trace.csv (for sizing)
 %     p2p_ideal_out.mat       t, q, qd, tau, q_ref (input for analyze_inertia_p2p)
+%                             + act_t, act_log when the model logs j2_act_log (actuator in the slot)
 here = fileparts(mfilename('fullpath'));
 if nargin < 1 || isempty(inputMat), inputMat = fullfile(here,'p2p_input.mat'); end
 if nargin < 2 || isempty(model), model = 'Gen3_J2_slot'; end
 if nargin < 3 || isempty(tag), tag = 'ideal'; end
 if nargin < 4, wsVars = struct(); end
+if nargin < 5, simParams = struct(); end
 S = load(inputMat);
 m = model;
 if ~bdIsLoaded(m), load_system(fullfile(here,[m '.slx'])); end
@@ -32,6 +36,8 @@ for k = 1:numel(wf), in = in.setVariable(wf{k}, wsVars.(wf{k}), 'Workspace', m);
 % Denser log by interpolating between solver steps (RefineOutputTimes). Forcing 1 ms output
 % times (AdditionalOutputTimes) made the variable-step solver stop ~20x more often: 10+ min per run.
 in = in.setModelParameter('StopTime', num2str(T), 'OutputOption','RefineOutputTimes', 'Refine','10');
+pf = fieldnames(simParams);
+for k = 1:numel(pf), in = in.setModelParameter(pf{k}, simParams.(pf{k})); end
 in = no_animation(in, m);
 out = sim(in);
 
@@ -68,6 +74,12 @@ tr = table(t, tcm(:,2), tau(:,2), qd(:,2), q(:,2), P2, 'VariableNames', ...
 if strcmp(tag,'ideal'), trName = 'joint2_p2p_trace.csv'; else, trName = ['joint2_p2p_trace_' tag '.csv']; end
 writetable(tr, fullfile(rd,trName));
 save(fullfile(rd,['p2p_' tag '_out.mat']), 't','q','qd','tau','tcm','qr','qdr');
+act_t = []; act_log = [];
+if any(strcmp(out.who, 'j2_act_log'))      % actuator in the slot: iq_cmd iq id vd vq |v| wm Te tau_J defl
+    act_t = out.j2_act_log.Time; act_log = squeeze(out.j2_act_log.Data);
+    if size(act_log,1) ~= numel(act_t), act_log = act_log.'; end
+    save(fullfile(rd,['p2p_' tag '_out.mat']), 'act_t','act_log', '-append');
+end
 
 % ---- figure: joints 2 and 4 ----
 f = figure('Visible','off','Position',[50 50 1000 850]); tiledlayout(4,1);
@@ -82,7 +94,8 @@ nexttile; plot(t, tau(:,2), t, tau(:,4)); ylabel('torque (N m)'); xlabel('time (
 legend('joint 2','joint 4'); grid on;
 exportgraphics(f, fullfile(rd,['p2p_' tag '.png']), 'Resolution',130); close(f);
 
-res = struct('metrics',M,'t',t,'q',q,'qd',qd,'tau',tau,'e',e,'tag',tag,'model',m);
+res = struct('metrics',M,'t',t,'q',q,'qd',qd,'tau',tau,'tcm',tcm,'e',e,'tag',tag,'model',m, ...
+             'act_t',act_t,'act_log',act_log);
 fprintf('[%s] Joint 2: max error %.3g mrad, peak speed %.3f rad/s (%.0f%% of limit), peak torque %.2f N m\n', ...
     tag, 1e3*M.MaxPosErr_rad(2), M.PeakSpeed_rad_s(2), M.PeakSpeed_pct_of_1p36(2), M.PeakTorque_Nm(2));
 end

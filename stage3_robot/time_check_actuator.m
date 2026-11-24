@@ -28,7 +28,8 @@ cfg = { 'Gen3_J2_ctc', struct(),                                                
         'Gen3_J2_act', struct('SolverName','ode23t','MaxStep','1e-3','RelTol','1e-4'), 'act, ode23t 1e-3';
         'Gen3_J2_act', setfield(o45,'SimulationMode','accelerator'),               'act, ode45 2e-4 accel' }; %#ok<SFLD>
 if nargin < 2 || isempty(cfgIdx), cfgIdx = 1:size(cfg,1); end
-S = load(fullfile(here,'p2p_input.mat'));
+ensure_stage3_model('Gen3_J2_act');      % builds Gen3_J2_slot -> ... -> Gen3_J2_act if missing
+S = load(ensure_p2p_input());
 
 rows = {};
 for k = cfgIdx

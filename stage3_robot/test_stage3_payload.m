@@ -14,9 +14,8 @@ function R = test_stage3_payload(throwMat)
 %   Output   : results/payload_check.csv, results/payload_check.png
 here = fileparts(mfilename('fullpath'));
 if nargin < 1, throwMat = fullfile(here,'baseline_input_decel.mat'); end
-p2pMat = fullfile(here,'p2p_input.mat');
-assert(isfile(p2pMat), 'Run make_p2p_trajectory first (needs %s).', p2pMat);
-assert(isfile(fullfile(here,'Gen3_J2_payload.slx')), 'Run build_stage3_payload first.');
+p2pMat = ensure_p2p_input();
+ensure_stage3_model('Gen3_J2_payload');
 
 % ---------------- part 1: slow point-to-point ----------------
 load_system(fullfile(here,'Gen3_J2_payload.slx'));

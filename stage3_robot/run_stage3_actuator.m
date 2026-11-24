@@ -31,9 +31,8 @@ if nargin < 1, opts = struct(); end
 d = struct('reuseIdeal', true, 'cases', {{'act_jr','act_nojr'}}, 'solver', struct(), 'stopTime', []);
 fn = fieldnames(d);
 for k = 1:numel(fn), if ~isfield(opts,fn{k}), opts.(fn{k}) = d.(fn{k}); end, end
-assert(isfile(fullfile(here,'Gen3_J2_act.slx')), 'Run build_stage3_actuator first.');
-p2pMat = fullfile(here,'p2p_input.mat');
-if ~isfile(p2pMat), make_p2p_trajectory(); end
+ensure_stage3_model('Gen3_J2_act');      % builds the missing models on a fresh checkout
+p2pMat = ensure_p2p_input();
 S = load(p2pMat);
 rd = fullfile(here,'results');
 

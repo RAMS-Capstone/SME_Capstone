@@ -17,7 +17,7 @@ function res = run_p2p_ideal(inputMat, model, tag, wsVars, simParams)
 %     p2p_ideal_out.mat       t, q, qd, tau, q_ref (input for analyze_inertia_p2p)
 %                             + act_t, act_log when the model logs j2_act_log (actuator in the slot)
 here = fileparts(mfilename('fullpath'));
-if nargin < 1 || isempty(inputMat), inputMat = fullfile(here,'p2p_input.mat'); end
+if nargin < 1 || isempty(inputMat), inputMat = ensure_p2p_input(); end
 if nargin < 2 || isempty(model), model = 'Gen3_J2_slot'; end
 if nargin < 3 || isempty(tag), tag = 'ideal'; end
 if nargin < 4, wsVars = struct(); end

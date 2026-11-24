@@ -5,7 +5,8 @@ function T = time_check_payload(stopTime)
 %   stopTime : simulated seconds per run (default 1)
 here = fileparts(mfilename('fullpath'));
 if nargin < 1, stopTime = 1; end
-S = load(fullfile(here,'p2p_input.mat'));
+ensure_stage3_model('Gen3_J2_payload');
+S = load(ensure_p2p_input());
 mods = {'Gen3_J2_slot','Gen3_J2_payload'};
 rows = cell(2,5);
 for k = 1:2

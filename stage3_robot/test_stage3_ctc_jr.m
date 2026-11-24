@@ -17,8 +17,8 @@ function R = test_stage3_ctc_jr
 %   Output: results/ctc_jr_check.csv, results/ctc_jr_check.png
 here = fileparts(mfilename('fullpath'));
 m = 'Gen3_J2_ctc';
-assert(isfile(fullfile(here,[m '.slx'])), 'Run build_stage3_ctc_jr first.');
-p2pMat = fullfile(here,'p2p_input.mat'); S = load(p2pMat);
+ensure_stage3_model(m);
+p2pMat = ensure_p2p_input(); S = load(p2pMat);
 Jr = 100^2*(170e-7 + 0.079e-4);           % N^2*(Jm + J_WG), stage1_motor/j2_params.m
 JrVec = [0 Jr 0 0 0 0 0]';
 

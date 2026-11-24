@@ -11,6 +11,7 @@
 | 3 | 동작 중 M(q) 관성 변화 그림 (`analyze_inertia_p2p.m`) | **완료** (2026-11-20) |
 | 4 | CTC에 반사 관성 옵션 추가 (`build_stage3_ctc_jr.m`, `test_stage3_ctc_jr.m`) | **완료** (2026-11-21) |
 | 3a | CTC에 공(페이로드) 반영, 놓는 순간 전환 (`build_stage3_payload.m`, `test_stage3_payload.m`) | **완료** (2026-11-21) |
+| 5 | 관절 2 슬롯에 단계 2 액추에이터를 넣고 이상 토크와 비교 (`build_stage3_actuator.m`, `run_stage3_actuator.m`) | **완료** (2026-11-24) |
 
 ## 1. 관절 2 액추에이터 슬롯
 
@@ -33,7 +34,7 @@ build_stage3_slot                            % -> Gen3_J2_slot.slx (원본 파�
 test_stage3_slot('baseline_input_decel.mat') % 원본과 슬롯 모델을 같은 입력으로 비교
 ```
 
-- `baseline_input_decel.mat`(q_cmd, qd_cmd, qdd_cmd, t_release_plan)는 민혁 PC에만 있다. MATLAB 경로에 두거나 전체 경로를 넘긴다.
+- `baseline_input_decel.mat`(q_cmd, qd_cmd, qdd_cmd, t_release_plan)는 이 폴더에 있다(2026-11-24 저장소에 추가). 인자를 생략하면 이 파일을 쓴다.
 - 원본 `Gen3_throw_baseline.slx`는 인자 → `../models/original/` → 같은 폴더 → MATLAB 경로 순서로 찾는다. 폴더 밖에서 실행할 때는 `build_stage3_slot('C:/.../Gen3_throw_baseline.slx')`처럼 경로를 넘긴다.
 - 통과 기준: q, qd, 토크의 최대 차이 < 1e-9.
 
@@ -166,3 +167,94 @@ test_stage3_ctc_jr       % 느린 동작 2회 (약 4분)
 
 - 재계산 오차는 기록 신호를 솔버 스텝 사이에서 보간한 데서 생긴다. 통과 여유가 크지 않다(0.0047 대 0.005). 다만 Jr 항이 빠졌다면 0.079 N·m 수준의 차이가 나므로 검사는 의미가 있다.
 - **제어기가 회전자 관성을 잘못 알면, 느린 동작에서도 수 mrad 오차가 생긴다.** 이번에는 없는 회전자를 있다고 믿는 경우였고, 여기서도 관절 4 오차(6.0)가 관절 2(2.5)보다 크다. 관절 2의 토크 오차가 질량 행렬 결합을 타고 퍼지기 때문이다. 던지기는 관절 가속도가 약 20배(10 rad/s² 대 0.5)라서 같은 불일치가 수십 mrad 수준이 될 것으로 예상한다. 액추에이터를 붙일 때 `ctc_Jr`를 켜야 하는 근거다.
+
+## 5. 관절 2에 실제 액추에이터 넣기 (이상 토크 대 액추에이터)
+
+`Gen3_J2_ctc.slx`를 복사해 `Gen3_J2_act.slx`를 만들고, `J2_Actuator_Slot/J2_Actuator`(지금까지 이상 통과)의 내용물을 `stage2_actuator/J2_Actuator.slx`의 내용물로 바꾼다. 단계 2 시험대가 쓰는 것과 같은 `copyContentsToSubSystem`이라서 1자유도 시험대에서 확인한 블록이 그대로 로봇에 들어간다.
+
+```
+CTC ──τ_cmd(7)──► J2_Actuator_Slot ──τ_applied(7)──► Gen3
+                    관절 2: τ_cmd → iq → FOC → dq PMSM → 모터축(Jm+J_WG) → 감속기 스프링 Kg, cg → τ_J
+                                                                  ▲ q_J, q̇_J (로봇에서)
+```
+
+| 바꾼 것 | 내용 | 이유 |
+| --- | --- | --- |
+| 모터축 초기 각도 정렬 | θm0 = s·N·(q0₂ + τ0₂/Kg), ωm0 = s·N·q̇0₂ (`j2_actuator_init.m`) | θm0 = 0이면 감속기가 −Kg·q0₂만큼 감긴 채 시작한다(q0₂ = 0.1 rad면 1400 N·m). 첫 CTC 토크 τ0만큼 미리 비틀어 두면 τ_J(0) = τ0라서 시작 순간 출렁임이 없다 |
+| CTC 반사 관성 | `ctc_Jr = [0 0.249 0 0 0 0 0]'` (켜짐이 기본) | 설계 결정 2. 비교용으로 꺼짐도 돌린다 |
+| 솔버 | `ode45`, MaxStep 2e-4 s, RelTol 1e-5 (이 모델만) | 1 kHz 전류 루프(약 7000 rad/s)와 약 40 Hz 감속기 모드가 10 rad/s CTC 루프와 같이 있다. explicit 솔버로도 이 스텝이면 안정하고 Jacobian 계산이 없다. 이상 모델들은 원래 설정 그대로 |
+| 속도 | 로보틱스 블록 'Code generation', 쓰지 않는 IK 체인 주석 처리 | 아래 "실행 시간" |
+| 로그 | `j2_act_log`(iq_cmd, iq, id, vd, vq, \|v\|, ωm, Te, τ_J, 비틀림)를 결과 MAT에 함께 저장 | `run_p2p_ideal`에 모델 파라미터 인자(5번째)를 추가했다 |
+
+τ0는 CTC가 t = 0에 내는 토크를 같은 식으로 다시 계산한 값이다(공을 쥔 상태면 `robotPayload`). 입력이 바뀌면 `run_stage3_actuator`가 실행마다 다시 계산한다.
+
+### 실행
+
+```matlab
+cd stage3_robot
+build_stage3_actuator    % -> Gen3_J2_act.slx (Gen3_J2_ctc.slx 필요. J2_Actuator.slx가 없으면 단계 2 빌드부터 한다)
+run_stage3_actuator      % 느린 동작: ideal(재사용 가능) + act_jr + act_nojr
+```
+
+- 필요한 모델 순서: `build_stage3_slot` → `build_stage3_payload` → `build_stage3_ctc_jr` → `build_stage3_actuator`. 저장소에는 `Gen3_J2_slot.slx`만 있다. 새로 받은 폴더에서는 `run_stage3_actuator`, `time_check_actuator`, 단계 3 테스트들이 빠진 모델(`ensure_stage3_model`)과 `p2p_input.mat`(`ensure_p2p_input`)을 처음 실행할 때 알아서 만든다.
+- `ideal`은 `test_stage3_ctc_jr`가 남긴 `results/p2p_ctc_off_out.mat`가 있으면 재사용한다. 없으면 `Gen3_J2_ctc`(ctc_Jr 꺼짐)로 한 번 돌린다.
+- 스텝 크기 영향 확인: `run_stage3_actuator(struct('solver',struct('MaxStep','1e-4'),'cases',{{'act_jr'}}))`.
+- **실행 시간:** 처음에는 로보틱스 블록이 'Interpreted execution'이라 한 번 실행에 수 시간이 걸렸다. `build_stage3_actuator`가 이 블록들을 'Code generation'으로 바꾸고(`set_robot_blocks`, 결과는 같고 C 컴파일러 필요), Scope에만 연결된 IK 체인을 주석 처리한다. `time_check_actuator`(2026-11-24, 민혁 PC, 0.05 s 구간)로 설정을 비교한 결과는 아래와 같다. 그래서 기본 설정을 **ode23t, MaxStep 1e-3, RelTol 1e-4**로 정했다. `run_stage3_actuator`는 같은 사례를 스텝 1/5(2e-4)로 처음 2 s만 다시 돌려 차이도 기록한다(`stage3_actuator_convergence.csv`, 기준 0.01 mrad).
+
+  | 설정 | 스텝당 | 8.5 s 예상 |
+  | --- | --- | --- |
+  | act, ode45 2e-4 | 558 ms | 약 400분 |
+  | act, ode45 2e-4, 가속기 (두 번째 실행) | 13 ms | 약 10분 |
+  | **act, ode23t 1e-3** | 34 ms | **약 7분** |
+  | 참고: ideal, 자체 솔버 / ode45 2e-4 | 334 / 62 ms (대부분 초기화 15 s) | — |
+
+| 사례 | 모델 | CTC의 ctc_Jr(2) |
+| --- | --- | --- |
+| `ideal` | `Gen3_J2_ctc` (이상 통과) | 0 |
+| `act_jr` | `Gen3_J2_act` (액추에이터) | 0.249 |
+| `act_nojr` | `Gen3_J2_act` (액추에이터) | 0 (CTC가 회전자를 모름) |
+
+통과 기준(실패하면 결과를 쓴 뒤 멈춘다): 처음 50 ms 동안 |τ_J − τ_cmd| < 0.5 N·m(정렬 확인), iq 명령 피크 < 20.9 A, \|v\| 피크 < 12.47 V, 감속기 토크 피크 < 70 N·m(CSG-17-100 반복 피크). 추종 오차와 이상 대비 편차는 기준 없이 기록한다. 결과는 `results/stage3_actuator_compare.csv`, `.png`, 사례별 `p2p_<사례>_metrics.csv`, `_out.mat`.
+
+### 예상 (MATLAB 실행 전, `predict_actuator_1dof.py`)
+
+관절 2만 떼어 중력·결합은 CTC가 완벽히 보상한다고 가정한 1자유도 계산이다(J_L = 1.25 kg·m², Kp = 100, Kd = 20).
+
+| 사례 | 관절 2 최대 오차 | 관성 토크에 의한 감속기 비틀림 |
+| --- | --- | --- |
+| `ideal` | 0 | — |
+| `act_nojr` | 약 1.0 mrad | 0.05 mrad |
+| `act_jr` | 약 0.002 mrad | 0.05 mrad |
+
+- Gen3에서는 이 위에 페이로드 CTC의 잔여 오차(0.022 mrad)가 더해지고, 관절 2의 오차가 M24 결합으로 관절 4에도 퍼질 것이다(3a·4절과 같은 모양).
+- 중력 토크(피크 11 N·m)는 감속기를 약 0.8 mrad 비틀지만, CTC 명령에 이미 들어 있고 저주파라 τ_J가 따라가므로 추종 오차로는 거의 나타나지 않을 것으로 본다.
+- 이 동작에서 전류(약 3.7 A)와 전압(약 1.5 V)은 한계에 한참 못 미친다. 그래서 차이는 회전자 관성(ctc_Jr로 보상)과 감속기 탄성에서만 나온다.
+
+### 결과 (2026-11-24, 민혁 PC)
+
+모든 확인 항목을 통과했다(`results/stage3_actuator_compare.csv`, `.png`, `p2p_act_jr_metrics.csv`, `p2p_act_nojr_metrics.csv`, `stage3_actuator_convergence.csv`).
+
+| 사례 | 관절 2 최대 오차 | 관절 4 | 전 관절 최대 | 이상 대비 편차 (전 관절) | 실행 시간 |
+| --- | --- | --- | --- | --- | --- |
+| `ideal` (이상 토크) | 0.022 mrad | 0.022 | 0.022 | — | 47 s |
+| `act_jr` (액추에이터, CTC가 회전자를 앎) | 0.025 | 0.060 | **0.060 mrad** | 0.077 mrad | 151 s |
+| `act_nojr` (액추에이터, CTC가 회전자를 모름) | 5.63 | 13.2 | **14.0 mrad** (관절 5) | 14.0 mrad | 29 s |
+
+| 액추에이터 상태 (`act_jr`) | 값 | 한계 대비 |
+| --- | --- | --- |
+| 감속기 토크 τ_J 피크 | 11.28 N·m | 반복 피크 70 N·m의 16% |
+| 명령과 실제 관절 토크 차이 최대 | 0.128 N·m | Jr·q̈ 피크(0.249 × 0.51 = 0.127)와 같다 |
+| iq 명령 피크 | 2.61 A | 20.9 A의 12% |
+| 전압 \|v\| 피크 | 1.52 V | 12.47 V의 12% |
+| 모터 속도 피크 | 477 rpm | 6000 rpm의 8% |
+| 감속기 비틀림 피크 | 0.81 mrad | = 11.28 / 1.4×10⁴ (중력 토크가 대부분) |
+| 시작 순간 \|τ_J − τ_cmd\| | 4×10⁻⁶ N·m | 기준 0.5 N·m |
+| 스텝 1/5로 다시 돌린 차이 (처음 2 s) | q 5×10⁻⁵ mrad, τ_J 1.4×10⁻⁴ N·m | 기준 0.01 mrad |
+
+해석:
+
+- **CTC가 회전자 관성을 알면 액추에이터를 넣어도 이상 토크와 거의 같다.** 전 관절 최대 오차가 0.022 → 0.060 mrad로, 이상 토크 대비 편차는 0.077 mrad다. 남은 차이는 감속기 탄성과 전류 루프 지연에서 온다. 1자유도 예상(0.002 mrad)보다는 크지만 여전히 0.1 mrad 미만이다.
+- **회전자를 모르면 오차가 약 230배 커진다(0.06 → 14 mrad).** 관절 2의 토크 부족은 Jr·q̈ = 0.13 N·m로 작다. 하지만 이 부족분이 관절 2만이 아니라 모든 관절로 퍼진다. 그래서 관절 1·4·5에서 13–14 mrad가 나온다(관절 1·3·5·6의 이상 오차는 10⁻⁹–10⁻⁸ rad). 1자유도 예상(약 1 mrad)은 이 결합을 빼고 계산해서 관절 2만 해도 5.6 mrad인 실제보다 5배 이상 작다. CTC 오차 e = (M·Kp)⁻¹·Δ에서 M⁻¹의 비대각 항이 퍼뜨리는 것으로 본다(4절의 반대 경우 2.5 / 6.0 mrad와 같은 모양). 다만 관절별로 따로 확인하지는 않은 해석이다.
+- **오차 모양이 가속도를 따라간다.** `act_nojr`의 e₂는 가속 구간(약 1.3 s, 7.1 s)에 +5.6 mrad, 감속 구간(약 3 s, 5.4 s)에 −3 mrad이고 정지 구간에는 0으로 돌아온다. 관성 토크 부족이라는 뜻이고, 중력·감속기 비틀림(최대 0.8 mrad)은 오차로 남지 않는다.
+- **이 동작은 액추에이터 한계의 12–16%만 쓴다.** 전류·전압 제한의 영향을 보려면 던지기(단계 4)나 18 V·10.4 A 사례가 필요하다.
+- **시작 정렬 확인은 이번 동작에서는 의미가 약하다.** q0₂ = 0(팔이 선 자세)이라 τ0 = 0이었다. 던지기처럼 기울어진 자세에서 시작할 때 효과가 난다.

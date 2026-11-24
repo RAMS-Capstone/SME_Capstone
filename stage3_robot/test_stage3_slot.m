@@ -4,13 +4,13 @@ function cmp = test_stage3_slot(inputMat, srcfile)
 %   trajectory and compares q, qd (7 joints) and the joint torques.
 %
 %   inputMat : the baseline input MAT with q_cmd, qd_cmd, qdd_cmd, t_release_plan
-%              (default 'baseline_input_decel.mat' on the MATLAB path; it is on Minhyuk's PC)
+%              (default: baseline_input_decel.mat in this folder, committed to the repo)
 %   srcfile  : (optional) full path of Gen3_throw_baseline.slx, found automatically otherwise
 %   Pass     : max |difference| < 1e-9 for every signal.
 %   Output   : stage3_robot/results/stage3_slot_check.csv, stage3_slot_check.png
-if nargin < 1, inputMat = 'baseline_input_decel.mat'; end
-if nargin < 2, srcfile = ''; end
 here = fileparts(mfilename('fullpath'));
+if nargin < 1, inputMat = fullfile(here,'baseline_input_decel.mat'); end
+if nargin < 2, srcfile = ''; end
 S = load(inputMat);
 need = {'q_cmd','qd_cmd','qdd_cmd','t_release_plan'};
 miss = need(~isfield(S,need));

@@ -198,7 +198,7 @@ run_stage3_actuator      % 느린 동작: ideal(재사용 가능) + act_jr + act
 - 필요한 모델 순서: `build_stage3_slot` → `build_stage3_payload` → `build_stage3_ctc_jr` → `build_stage3_actuator`. `Gen3_J2_payload.slx`, `Gen3_J2_ctc.slx`는 저장소에 없으니 처음이면 위 순서대로 만든다.
 - `ideal`은 `test_stage3_ctc_jr`가 남긴 `results/p2p_ctc_off_out.mat`가 있으면 재사용한다. 없으면 `Gen3_J2_ctc`(ctc_Jr 꺼짐)로 한 번 돌린다.
 - 스텝 크기 영향 확인: `run_stage3_actuator(struct('solver',struct('MaxStep','5e-5'),'cases',{{'act_jr'}}))`.
-- 실행 시간은 아직 모른다. 스텝이 0.1 ms 이하라 이상 모델(약 2분)보다 몇 배 길 수 있다.
+- **실행 시간:** 기본 설정(ode23t, MaxStep 1e-4)으로는 `act_jr` 한 번이 20분을 넘겼다(2026-11-24, 민혁 PC, 끝나지 않음). 이상 모델은 164초였다. 먼저 `time_check_actuator`로 짧은 구간(0.8 s)을 솔버 설정 4가지로 돌려 본다. 그러면 전체 예상 시간과 기준 설정 대비 차이가 나온다. 그다음 고른 설정으로 `run_stage3_actuator(struct('solver', struct('SolverName','ode45','MaxStep','2e-4'))))`처럼 실행한다. 앞부분만 빨리 보려면 `struct('stopTime', 2)`를 쓴다.
 
 | 사례 | 모델 | CTC의 ctc_Jr(2) |
 | --- | --- | --- |

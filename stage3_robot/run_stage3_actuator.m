@@ -19,13 +19,16 @@ function R = run_stage3_actuator(opts)
 %     reuseIdeal  true   reuse results/p2p_ctc_off_out.mat (test_stage3_ctc_jr) if it exists
 %     cases       {'act_jr','act_nojr'}
 %     solver      struct of model parameters for the actuator runs, e.g. struct('MaxStep','5e-5')
-%                 to check that the step size does not change the result
+%                 to check that the step size does not change the result. time_check_actuator
+%                 measures how fast each setting is.
+%     stopTime    simulated seconds of the actuator runs (default: whole motion, 8.5 s), e.g. 2
+%                 for a quick look at the hold and the first part of the move
 %   Needs  : Gen3_J2_ctc.slx, Gen3_J2_act.slx (build_stage3_actuator), p2p_input.mat (made if missing)
 %   Output : results/stage3_actuator_compare.csv, results/stage3_actuator_compare.png,
 %            results/p2p_<case>_metrics.csv / _out.mat (run_p2p_ideal)
 here = fileparts(mfilename('fullpath'));
 if nargin < 1, opts = struct(); end
-d = struct('reuseIdeal', true, 'cases', {{'act_jr','act_nojr'}}, 'solver', struct());
+d = struct('reuseIdeal', true, 'cases', {{'act_jr','act_nojr'}}, 'solver', struct(), 'stopTime', []);
 fn = fieldnames(d);
 for k = 1:numel(fn), if ~isfield(opts,fn{k}), opts.(fn{k}) = d.(fn{k}); end, end
 assert(isfile(fullfile(here,'Gen3_J2_act.slx')), 'Run build_stage3_actuator first.');
@@ -52,7 +55,8 @@ m = 'Gen3_J2_act';
 if ~bdIsLoaded(m), load_system(fullfile(here,[m '.slx'])); end
 mw = get_param(m,'ModelWorkspace');
 act0 = mw.getVariable('act'); JrOn = mw.getVariable('ctc_Jr');
-simP = opts.solver; simP.Refine = '1';     % solver step is already <= 0.1 ms: no output refinement
+simP = opts.solver; simP.Refine = '1';     % solver step is already small: no output refinement
+if ~isempty(opts.stopTime), simP.StopTime = num2str(opts.stopTime); end
 C = struct([]);
 for ic = 1:numel(opts.cases)
     tag = opts.cases{ic};
